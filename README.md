@@ -38,3 +38,7 @@ Remember to update the NEO4J_PASS parameter, in your .env file, to match the new
 ## Run
 
 Just run and see if this works.
+
+```bash
+node index.js
+```
