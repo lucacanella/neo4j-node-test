@@ -1,0 +1,15 @@
+{
+    "version": "0.1.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Program",
+            "program": "node index.js"
+        }
+    ],
+    "dependencies": {
+        "neo4j-driver": ">=1.5.0",
+        "dotenv": ">=6.0.0"
+    }
+}
