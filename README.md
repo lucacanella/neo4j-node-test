@@ -1,6 +1,12 @@
 # Neo4j / node test
 
-A simple Neo4j / node test application.
+A Neo4j / node sample application.
+
+This application creates the following graph on a Neo4j database:
+
+![Graph model](/images/graph.png)
+
+**NB:** This app has been created for test/study purposes.
 
 ## Installation
 
@@ -15,8 +21,10 @@ Then add configuration parameters to your .env file:
 ```
 NEO4J_URL="bolt://localhost:7687"
 NEO4J_USER="neo4j"
-NEO4J_PASS="neo4j"
+NEO4J_PASS="<your_password>"
 ```
+
+Watch out for neo4j requires you to change the default password before you can run this application (see Docker paragraph).
 
 ### Docker
 
@@ -41,4 +49,14 @@ Just run and see if this works.
 
 ```bash
 node index.js
+```
+
+Then you can visit http://localhost:7474/ and run this query to see if it matches our graph model:
+
+```Cypher
+MATCH (u:User), (g:Group), (p:Permission)
+OPTIONAL MATCH (u)-[:IS_IN]->(g)
+OPTIONAL MATCH (g)-[:CAN]->(p) 
+OPTIONAL MATCH (u)-[:CAN]->(p)
+return u, g, p
 ```

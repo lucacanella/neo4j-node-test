@@ -17,6 +17,8 @@ const
       USER_1 = "Luca"
     , USER_2 = "Mina"
     , ADMINS_GROUP = "Admins"
+    , EDIT_POST_PERMISSION = 'edit_post'
+    , EDIT_OWN_POST_PERMISSION = 'edit_own_post'
     ;
 
 console.log('Setting up...');
@@ -34,6 +36,8 @@ Promise.all([
     dal.addUserToGroup(USER_1, ADMINS_GROUP),
     //add user 2 to group
     dal.addUserToGroup(USER_2, ADMINS_GROUP),
+    //create indexes
+    dal.createIndexes()
 ]).then(() => {
 
     console.log('Setup ok. Retreiving users.');
@@ -44,8 +48,16 @@ Promise.all([
             result.records.forEach((r, k) => {
                 console.log("User ", k, r.get(0).properties.name);
             });
-            // on application exit:
+        })
+        .then(() => {
+            console.log("Adding "+EDIT_POST_PERMISSION+" permission");
+            return Promise.all([
+                dal.addPermission(EDIT_POST_PERMISSION, null, ADMINS_GROUP),
+                dal.addPermission(EDIT_OWN_POST_PERMISSION, ['Luca', 'Mina'], null)
+            ]);
+        })
+        .then(() => {
+            console.log('Closing connection.');
             dal.close();
         });
-
 });

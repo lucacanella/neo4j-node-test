@@ -2,11 +2,23 @@ const neo4j = require('neo4j-driver').v1;
 
 // Graph queries
 const 
-      CREATE_USER_QUERY = "CREATE (n:User { name: $username }) return n"
-    , CREATE_GROUP_QUERY = "CREATE (n:Group { name: $groupname }) return n"
+      CREATE_USER_QUERY = "CREATE (u:User { name: $username }) return u"
+    , CREATE_GROUP_QUERY = "CREATE (g:Group { name: $groupname }) return g"
+    , CREATE_PERMISSION_QUERY = "CREATE (p:Permission { name: $permission }) return p"
+    , CREATE_USER_INDEX = "CREATE INDEX ON :User(name)"
+    , CREATE_GROUP_INDEX = "CREATE INDEX ON :Group(name)"
+    , CREATE_PERMISSION_INDEX = "CREATE INDEX ON :Permission(name)"
     , CREATE_USER_GROUP_REL_QUERY = "MATCH (a:User { name: $username }), (g:Group { name: $groupname }) CREATE (a)-[:IS_IN]->(g)-[:USERS]->(a)"
+    , ADD_USER_PERMISSION_QUERY  = "MATCH (u:User), (p:Permission { name: $permission }) WHERE u.name IN $usernames CREATE (u)-[uc:CAN]->(p) return uc"
+    , ADD_GROUP_PERMISSION_QUERY = "MATCH (g:Group), (p:Permission { name: $permission }) WHERE g.name IN $groupnames CREATE (g)-[gc:CAN]->(p) return gc"
     , GET_USERS_IN_ADMINS_QUERY = "MATCH (a:User)-[:IS_IN]->(b:Group { name:$groupname }) return a, b"
-    , CLEAR_DATA_QUERY = "MATCH (a:User)-[:IS_IN]->(g:Group) DETACH DELETE a, g"
+    , CLEAR_DATA_QUERY = "OPTIONAL MATCH (u:User), (g:Group), (p:Permission) DETACH DELETE u, g, p"
+    , LOAD_USER_GROUP_PERMISSIONS = 
+        "MATCH (u:User), (g:Group), (p:Permission) \
+        OPTIONAL MATCH (u)-[:IS_IN]->(g) \
+        OPTIONAL MATCH (g)-[:CAN]->(p)  \
+        OPTIONAL MATCH (u)-[:CAN]->(p) \
+        return u, g, p"
     ;
 
 class DataAccessLayer {
@@ -46,6 +58,14 @@ class DataAccessLayer {
         )
     }
 
+    createIndexes() {
+        return Promise.all([
+            this.session.run(CREATE_USER_INDEX),
+            this.session.run(CREATE_GROUP_INDEX),
+            this.session.run(CREATE_PERMISSION_INDEX)
+        ]);
+    }
+
     addUserToGroup(username, groupName) {
         return this.session.run(
             CREATE_USER_GROUP_REL_QUERY,
@@ -58,6 +78,20 @@ class DataAccessLayer {
             GET_USERS_IN_ADMINS_QUERY,
             { groupname: groupName }
         )
+    }
+
+    addPermission(permission, username, group) {
+        var prom = [];
+        prom.push(this.session.run(CREATE_PERMISSION_QUERY, { permission: permission }));
+        if(username) {
+            let usernames = username instanceof Array ? username : [ username ];
+            prom.push(this.session.run(ADD_USER_PERMISSION_QUERY, { usernames: usernames, permission: permission }));
+        }
+        if(group) {
+            let groups = username instanceof Array ? group : [ group ];
+            prom.push(this.session.run(ADD_GROUP_PERMISSION_QUERY, { groupnames: groups, permission: permission }));
+        }
+        return Promise.all(prom);
     }
 
 }
