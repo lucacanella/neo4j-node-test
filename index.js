@@ -1,5 +1,5 @@
 require('dotenv').config();
-const neo4j = require('neo4j-driver').v1;
+const DataAccessLayer = require('./DAL');
 
 //gather env variables
 const 
@@ -10,71 +10,42 @@ const
 
 // connect to neo4j and create a new session
 console.log('Neo4j connect to: ', neo4j_url, neo4j_user);
-const driver = neo4j.driver(neo4j_url, neo4j.auth.basic(neo4j_user, neo4j_pass));
-const session = driver.session();
+var dal = new DataAccessLayer(neo4j_url, neo4j_user, neo4j_pass);
 
 // Some consts
 const 
-      user_1 = "Luca"
-    , user_2 = "Mina"
-    , admins_group = "Admins"
+      USER_1 = "Luca"
+    , USER_2 = "Mina"
+    , ADMINS_GROUP = "Admins"
     ;
 
-// Graph queries
-const 
-      create_user_query = "CREATE (n:User { name: $username }) return n"
-    , create_group_query = "CREATE (n:Group { name: $groupname }) return n"
-    , create_user_group_rel_query = "MATCH (a:User { name: $username }), (g:Group { name: $groupname }) CREATE (a)-[:IS_IN]->(g)-[:USERS]->(a)"
-    , get_users_in_admins_query = "MATCH (a:User)-[:IS_IN]->(b:Group { name:$groupname }) return a, b"
-    , delete_all = "MATCH (a:User)-[:IS_IN]->(g:Group) DETACH DELETE a, g"
-    ;
-
+console.log('Setting up...');
+//initial setup
 Promise.all([
     //delete all users
-    session.run(delete_all),
+    dal.clearAllData(),
     //create user 1
-    session.run(
-        create_user_query,
-        { username: user_1 }
-    ),
+    dal.createUser(USER_1),
     //create user 2
-    session.run(
-        create_user_query,
-        { username: user_2 }
-    ),
+    dal.createUser(USER_2),
     //create group
-    session.run(
-        create_group_query,
-        { groupname: admins_group }
-    ),
+    dal.createGroup(ADMINS_GROUP),
     //add user 1 to group
-    session.run(
-        create_user_group_rel_query,
-        { username: user_1, groupname: admins_group }
-    ),
+    dal.addUserToGroup(USER_1, ADMINS_GROUP),
     //add user 2 to group
-    session.run(
-        create_user_group_rel_query,
-        { username: user_2, groupname: admins_group }
-    )
+    dal.addUserToGroup(USER_2, ADMINS_GROUP),
 ]).then(() => {
 
+    console.log('Setup ok. Retreiving users.');
     // get all users in group
-    const resultPromise = session.run(
-        get_users_in_admins_query,
-        { groupname: admins_group }
-    );
-
-    resultPromise.then(result => {
-        session.close();
-
-        console.log("Results: ");
-        result.records.forEach((r) => {
-            console.log(r.get(0));
+    dal.getUsersInGroup(ADMINS_GROUP)
+        .then(result => {
+            console.log("Results: ");
+            result.records.forEach((r, k) => {
+                console.log("User ", k, r.get(0).properties.name);
+            });
+            // on application exit:
+            dal.close();
         });
-
-        // on application exit:
-        driver.close();
-    });
 
 });
