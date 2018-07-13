@@ -18,6 +18,7 @@ touch .env
 ```
 
 Then add configuration parameters to your .env file:
+
 ```
 NEO4J_URL="bolt://localhost:7687"
 NEO4J_USER="neo4j"
@@ -28,11 +29,11 @@ Watch out for neo4j requires you to change the default password before you can r
 
 ### Docker
 
-Set the NEO4J_DATA_HOME directory, that will be used to persist neo4j data, then pull and run the official Neo4j docker image as shown in the official site: https://neo4j.com/developer/docker/
+Set the NEO4J_DATA_HOME variable to specify a data directory, that will be used to persist neo4j data, then pull and run the official Neo4j docker image as shown in the official site: https://neo4j.com/developer/docker/
 
 ```bash
 export NEO4J_DATA_HOME=/home/user/neo4j/data
-docker run \
+docker run --rm \
     --publish=7474:7474 --publish=7687:7687 \
     --volume=$NEO4J_DATA_HOME/data:/data \
     --volume=$NEO4J_DATA_HOME/logs:/logs \
